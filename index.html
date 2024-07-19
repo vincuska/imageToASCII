@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Press space to open an image</title>
+    <style>
+        body {
+            font-family: monospace;
+            text-align: center;
+            user-select: none;
+        }
+
+        #output {
+            margin: 50px;
+            white-space: pre;
+            font-size: 10px;
+            letter-spacing: 5px;
+            line-height: 10px;
+        }
+
+        #hiddenFileInput {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <input type="file" id="hiddenFileInput" accept="image/*">
+    <div id="output"></div>
+
+    <script>
+        function handleFileInput(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+
+                    const grayData = [];
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const gray = (r + g + b) / 3;
+                        grayData.push(gray);
+                    }
+
+                    const characters = "@#%=*+:-. ";
+                    const output = [];
+                    const width = canvas.width;
+                    const height = canvas.height;
+                    for (let y = 0; y < height; y++) {
+                        let line = '';
+                        for (let x = 0; x < width; x++) {
+                            const grayValue = grayData[y * width + x];
+                            const scaledValue = Math.round((grayValue / 255) * 100);
+                            const index = Math.min(Math.floor(scaledValue / 10), characters.length - 1);
+                            line += characters[index];
+                        }
+                        output.push(line);
+                    }
+
+                    document.getElementById('output').textContent = output.join('\n');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.body.style.zoom = 0.2;
+
+        document.getElementById('hiddenFileInput').addEventListener('change', handleFileInput);
+
+        document.addEventListener('keydown', function (event) {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                document.getElementById('hiddenFileInput').click();
+            }
+        });
+    </script>
+</body>
+
+</html>
